@@ -242,6 +242,7 @@ const AdminHistoryPage = () => {
                 <th>Name</th>
                 <th>Class ID</th>
                 <th>Timestamp</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -268,11 +269,12 @@ const AdminHistoryPage = () => {
                     <td>{record.name || 'Không có tên'}</td>
                     <td>{record.class_id || 'Không có lớp'}</td>
                     <td>{new Date(record.timestamp).toLocaleString()}</td>
+                    <td>{record.status === 'present' ? 'Có mặt' : 'Vắng mặt'}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="text-center" style={{ padding: '20px' }}>
+                  <td colSpan="5" className="text-center" style={{ padding: '20px' }}>
                     Không có bản ghi phù hợp
                   </td>
                 </tr>

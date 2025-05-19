@@ -3,8 +3,9 @@ import { Container, Form, Button, Alert, Card, Image, Spinner } from 'react-boot
 import Webcam from 'react-webcam';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FaCamera, FaTimes, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCamera, FaTimes, FaCheckCircle, FaExclamationTriangle, FaQrcode } from 'react-icons/fa';
 import Sidebar from '../common/Sidebar';
+import {QrReader} from 'react-qr-reader';
 
 const AttendancePage = () => {
   const [image, setImage] = useState(null);
@@ -14,6 +15,7 @@ const AttendancePage = () => {
   const [attendanceData, setAttendanceData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showWebcam, setShowWebcam] = useState(false);
+  const [showQrScanner, setShowQrScanner] = useState(false);
   const webcamRef = useRef(null);
   const navigate = useNavigate();
 
@@ -64,6 +66,37 @@ const AttendancePage = () => {
     }
   };
 
+  const handleQrScan = async (data) => {
+    if (data) {
+      try {
+        setLoading(true);
+        const url = new URL(data);
+        const qrToken = url.searchParams.get('token');
+        const response = await axios.post('http://localhost:5000/attendance/qr', { token: qrToken }, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        setMessage(response.data.message);
+        setAttendanceData({
+          name: response.data.name,
+          student_id: response.data.student_id,
+          timestamp: new Date(response.data.timestamp).toLocaleString('vi-VN'),
+          status: response.data.status,
+        });
+        setShowQrScanner(false);
+      } catch (err) {
+        setError(err.response?.data?.error || 'Điểm danh qua QR thất bại');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleQrError = (err) => {
+    setError('Lỗi khi quét mã QR');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -93,6 +126,7 @@ const AttendancePage = () => {
         name: response.data.name,
         student_id: response.data.student_id,
         timestamp: new Date(response.data.timestamp).toLocaleString('vi-VN'),
+        status: response.data.status,
       });
       setImage(null);
       setPreview(null);
@@ -110,7 +144,6 @@ const AttendancePage = () => {
         style={{
           marginLeft: '250px',
           width: '80%',
-          // background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
           minHeight: '100vh',
           padding: '20px',
         }}
@@ -213,6 +246,25 @@ const AttendancePage = () => {
               Sử dụng Webcam
             </Button>
 
+            <Button
+              variant="primary"
+              onClick={() => setShowQrScanner(true)}
+              className="mb-3 w-100"
+              disabled={loading}
+              style={{
+                background: 'linear-gradient(45deg, #1e90ff, #6ab7f5)',
+                border: 'none',
+                borderRadius: '25px',
+                padding: '12px',
+                transition: 'transform 0.3s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <FaQrcode className="me-2" />
+              Quét mã QR
+            </Button>
+
             {showWebcam && (
               <div className="mb-4">
                 <Webcam
@@ -256,6 +308,32 @@ const AttendancePage = () => {
                     Tắt Webcam
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {showQrScanner && (
+              <div className="mb-4">
+                <QrReader
+                  delay={300}
+                  onError={handleQrError}
+                  onScan={handleQrScan}
+                  style={{ width: '100%' }}
+                />
+                <Button
+                  variant="danger"
+                  onClick={() => setShowQrScanner(false)}
+                  className="w-100 mt-3"
+                  style={{
+                    borderRadius: '25px',
+                    padding: '12px',
+                    transition: 'transform 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  <FaTimes className="me-2" />
+                  Tắt QR Scanner
+                </Button>
               </div>
             )}
 
@@ -311,7 +389,8 @@ const AttendancePage = () => {
                 <Card.Text>
                   <strong>Họ và tên:</strong> {attendanceData.name}<br />
                   <strong>Mã sinh viên:</strong> {attendanceData.student_id}<br />
-                  <strong>Thời gian:</strong> {attendanceData.timestamp}
+                  <strong>Thời gian:</strong> {attendanceData.timestamp}<br />
+                  <strong>Trạng thái:</strong> {attendanceData.status === 'present' ? 'Có mặt' : 'Vắng mặt'}
                 </Card.Text>
               </Card.Body>
             </Card>

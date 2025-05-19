@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, Row, Col, Spinner, Alert, Card } from 'react-bootstrap';
+import { Container, Table, Button, Form, Row, Col, Spinner, Alert, Card, Image } from 'react-bootstrap';
 import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-toastify';
@@ -12,8 +12,9 @@ const TeacherHistoryPage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [qrCode, setQrCode] = useState(null);
+  const [qrExpiry, setQrExpiry] = useState(null);
   const { user } = useAuth();
-
   const [search, setSearch] = useState({
     studentId: '',
     name: '',
@@ -38,6 +39,42 @@ const TeacherHistoryPage = () => {
       toast.error(error.response?.data?.error || 'Lỗi lấy lịch sử điểm danh');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateQrCode = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosClient.post('/teacher/generate-qr');
+      setQrCode(response.data.qr_code);
+      setQrExpiry(new Date(response.data.expiry).toLocaleString());
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Lỗi tạo mã QR');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateAttendanceStatus = async (studentId, timestamp, status) => {
+    try {
+      await axiosClient.put(`/attendance/${studentId}/${timestamp}`, { status });
+      setRecords((prev) =>
+        prev.map((record) =>
+          record.student_id === studentId && record.timestamp === timestamp
+            ? { ...record, status }
+            : record
+        )
+      );
+      setFilteredRecords((prev) =>
+        prev.map((record) =>
+          record.student_id === studentId && record.timestamp === timestamp
+            ? { ...record, status }
+            : record
+        )
+      );
+      toast.success('Cập nhật trạng thái thành công');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Lỗi cập nhật trạng thái');
     }
   };
 
@@ -80,6 +117,7 @@ const TeacherHistoryPage = () => {
     if (hasMore) fetchHistory(lastKey);
   };
 
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
@@ -87,7 +125,6 @@ const TeacherHistoryPage = () => {
         style={{
           marginLeft: '250px',
           width: 'calc(100% - 250px)',
-          // background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
           minHeight: '100vh',
           padding: '20px',
         }}
@@ -113,6 +150,29 @@ const TeacherHistoryPage = () => {
           >
             Lịch sử điểm danh (Teacher)
           </h2>
+          <Button
+            onClick={generateQrCode}
+            variant="primary"
+            disabled={loading}
+            style={{
+              background: 'linear-gradient(45deg, #1e90ff, #6ab7f5)',
+              border: 'none',
+              borderRadius: '25px',
+              padding: '10px 30px',
+              marginBottom: '20px',
+              transition: 'transform 0.3s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            Tạo mã QR điểm danh
+          </Button>
+          {qrCode && (
+            <div className="text-center mb-4">
+              <Image src={qrCode} alt="QR Code" style={{ maxWidth: '200px' }} />
+              <p>Hết hạn: {qrExpiry}</p>
+            </div>
+          )}
           {loading && (
             <div
               style={{
@@ -246,6 +306,8 @@ const TeacherHistoryPage = () => {
                 <th>Name</th>
                 <th>Class ID</th>
                 <th>Timestamp</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -272,11 +334,34 @@ const TeacherHistoryPage = () => {
                     <td>{record.name || 'Không có tên'}</td>
                     <td>{record.class_id || 'Không có lớp'}</td>
                     <td>{new Date(record.timestamp).toLocaleString()}</td>
+                    <td>{record.status === 'present' ? 'Có mặt' : 'Vắng mặt'}</td>
+                    <td>
+                      <Button
+                        variant={record.status === 'present' ? 'warning' : 'success'}
+                        size="sm"
+                        onClick={() =>
+                          updateAttendanceStatus(
+                            record.student_id,
+                            record.timestamp,
+                            record.status === 'present' ? 'absent' : 'present'
+                          )
+                        }
+                        style={{
+                          borderRadius: '15px',
+                          padding: '5px 15px',
+                          transition: 'transform 0.3s ease',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                      >
+                        {record.status === 'present' ? 'Đặt Vắng' : 'Đặt Có mặt'}
+                      </Button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="text-center" style={{ padding: '20px' }}>
+                  <td colSpan="6" className="text-center" style={{ padding: '20px' }}>
                     Không có bản ghi phù hợp
                   </td>
                 </tr>

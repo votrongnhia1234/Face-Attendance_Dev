@@ -9,6 +9,10 @@ import os
 import jwt
 import logging
 import bcrypt
+import qrcode
+from io import BytesIO
+import base64
+import uuid
 
 load_dotenv()
 
@@ -353,14 +357,16 @@ def attendance():
                     'student_id': student_id,
                     'name': user.get('name'),
                     'class_id': user.get('class_id'),
-                    'timestamp': timestamp
+                    'timestamp': timestamp,
+                    'status': 'present'  # Mặc định là có mặt
                 }
             )
             return jsonify({
                 'message': f'Điểm danh thành công: {student_id}',
                 'student_id': student_id,
                 'name': user.get('name'),
-                'timestamp': timestamp
+                'timestamp': timestamp,
+                'status': 'present'
             })
         except Exception as e:
             logging.exception("Attendance save error")
@@ -382,10 +388,14 @@ def history():
         attendance_table = dynamodb.Table('Attendance')
         limit = int(request.args.get('limit', 100))
         last_evaluated_key = request.args.get('last_key')
+        class_id = request.args.get('class_id')
 
         scan_kwargs = {'Limit': limit}
         if last_evaluated_key:
             scan_kwargs['ExclusiveStartKey'] = {'student_id': last_evaluated_key}
+        if class_id and role == 'teacher':
+            scan_kwargs['FilterExpression'] = 'class_id = :c'
+            scan_kwargs['ExpressionAttributeValues'] = {':c': class_id}
 
         scan_result = attendance_table.scan(**scan_kwargs)
         records = sorted(scan_result.get('Items', []), key=lambda x: x['timestamp'], reverse=True)
@@ -487,6 +497,136 @@ def admin_summary():
         logging.exception("Admin summary error")
         return jsonify({'error': 'Lỗi lấy thông tin dashboard'}), 500
 
+@app.route('/teacher/generate-qr', methods=['POST'])
+def generate_qr():
+    auth_result = check_authorization('teacher')
+    if auth_result:
+        return auth_result
+
+    try:
+        qr_token = str(uuid.uuid4())
+        expiry = (datetime.utcnow() + timedelta(minutes=2)).isoformat() + 'Z'
+        teacher_id = request.user['user_id']
+        
+        users_table = dynamodb.Table('Users')
+        user_data = users_table.get_item(Key={'user_id': teacher_id})
+        class_id = user_data.get('Item', {}).get('class_id', '')
+
+        qr_table = dynamodb.Table('QRCodes')
+        qr_table.put_item(
+            Item={
+                'token': qr_token,
+                'teacher_id': teacher_id,
+                'class_id': class_id,
+                'expiry': expiry,
+                'used': False
+            }
+        )
+
+        qr_url = f"http://localhost:5000/attendance/qr?token={qr_token}"
+        qr = qrcode.make(qr_url)
+        buffered = BytesIO()
+        qr.save(buffered)
+        qr_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+        return jsonify({
+            'qr_code': f"data:image/png;base64,{qr_base64}",
+            'token': qr_token,
+            'expiry': expiry
+        })
+    except Exception as e:
+        logging.exception("QR code generation error")
+        return jsonify({'error': 'Lỗi tạo mã QR'}), 500
+
+@app.route('/attendance/qr', methods=['POST'])
+def attendance_qr():
+    auth_result = check_authorization('student')
+    if auth_result:
+        return auth_result
+
+    data = request.get_json()
+    qr_token = data.get('token')
+    student_id = request.user['user_id']
+
+    try:
+        qr_table = dynamodb.Table('QRCodes')
+        qr_data = qr_table.get_item(Key={'token': qr_token}).get('Item')
+        if not qr_data:
+            return jsonify({'error': 'Mã QR không hợp lệ'}), 404
+
+        if qr_data['used']:
+            return jsonify({'error': 'Mã QR đã được sử dụng'}), 400
+
+        expiry = datetime.fromisoformat(qr_data['expiry'].replace('Z', '+00:00'))
+        if datetime.utcnow() > expiry:
+            return jsonify({'error': 'Mã QR đã hết hạn'}), 400
+
+        users_table = dynamodb.Table('Users')
+        user_data = users_table.get_item(Key={'user_id': student_id})
+        user = user_data.get('Item')
+        if not user:
+            return jsonify({'error': 'Sinh viên chưa đăng ký'}), 404
+
+        if user['class_id'] != qr_data['class_id']:
+            return jsonify({'error': 'Sinh viên không thuộc lớp này'}), 403
+
+        timestamp = datetime.utcnow().isoformat() + 'Z'
+        attendance_table = dynamodb.Table('Attendance')
+        attendance_table.put_item(
+            Item={
+                'student_id': student_id,
+                'name': user.get('name'),
+                'class_id': user.get('class_id'),
+                'timestamp': timestamp,
+                'status': 'present'
+            }
+        )
+
+        qr_table.update_item(
+            Key={'token': qr_token},
+            UpdateExpression='SET used = :used',
+            ExpressionAttributeValues={':used': True}
+        )
+
+        return jsonify({
+            'message': f'Điểm danh thành công: {student_id}',
+            'student_id': student_id,
+            'name': user.get('name'),
+            'timestamp': timestamp,
+            'status': 'present'
+        })
+    except Exception as e:
+        logging.exception("QR attendance error")
+        return jsonify({'error': 'Lỗi điểm danh qua QR'}), 500
+
+@app.route('/attendance/<student_id>/<timestamp>', methods=['PUT'])
+def update_attendance_status(student_id, timestamp):
+    auth_result = check_authorization('teacher')
+    if auth_result:
+        return auth_result
+
+    data = request.get_json()
+    new_status = data.get('status')
+    if new_status not in ['present', 'absent']:
+        return jsonify({'error': 'Trạng thái không hợp lệ'}), 400
+
+    try:
+        attendance_table = dynamodb.Table('Attendance')
+        response = attendance_table.get_item(Key={'student_id': student_id, 'timestamp': timestamp})
+        if not response.get('Item'):
+            return jsonify({'error': 'Bản ghi điểm danh không tồn tại'}), 404
+
+        attendance_table.update_item(
+            Key={'student_id': student_id, 'timestamp': timestamp},
+            UpdateExpression='SET #s = :status',
+            ExpressionAttributeNames={'#s': 'status'},
+            ExpressionAttributeValues={':status': new_status}
+        )
+
+        return jsonify({'message': f'Cập nhật trạng thái thành công: {student_id}'})
+    except Exception as e:
+        logging.exception("Update attendance status error")
+        return jsonify({'error': 'Lỗi cập nhật trạng thái điểm danh'}), 500
 
 # ======================= CHẠY SERVER =======================
 if __name__ == '__main__':
