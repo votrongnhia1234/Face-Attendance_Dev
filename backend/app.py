@@ -9,13 +9,14 @@ import os
 import jwt
 import logging
 import bcrypt
+from io import BytesIO
 
 load_dotenv()
 
 # Cấu hình Flask
 app = Flask(__name__)
 CORS(app)
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # Giới hạn 2MB
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # Giới hạn 5MB
 
 # Thiết lập logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -41,7 +42,8 @@ def check_authorization(required_role):
     token = auth_header.split(' ')[1]
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        if required_role and payload.get('role') != required_role:
+        user_role = payload.get('role')
+        if required_role and (not user_role or (isinstance(required_role, list) and user_role not in required_role) or (not isinstance(required_role, list) and user_role != required_role)):
             return jsonify({'error': f'Không có quyền truy cập, yêu cầu vai trò: {required_role}'}), 403
         request.user = payload
         return None
@@ -241,11 +243,9 @@ def teacher_register():
 
 @app.route('/register', methods=['POST'])
 def register():
-    auth_result = check_authorization('teacher')
+    auth_result = check_authorization(['teacher', 'admin'])
     if auth_result:
-        auth_result = check_authorization('admin')
-        if auth_result:
-            return auth_result
+        return auth_result
 
     if 'image' not in request.files or 'student_id' not in request.form:
         return jsonify({'error': 'Thiếu ảnh hoặc mã sinh viên'}), 400
@@ -265,46 +265,54 @@ def register():
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     try:
-    # Đọc ảnh vào RAM trước khi upload
+        # Đọc ảnh vào RAM
         image.seek(0)
         image_bytes = image.read()
 
-        # Upload ảnh lên S3 (dùng BytesIO để giữ nguyên image_bytes)
-        from io import BytesIO
+        # Upload ảnh lên S3
         s3_key = f'faces/{student_id}_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg'
-        s3_client.upload_fileobj(BytesIO(image_bytes), S3_BUCKET_NAME, s3_key)
+        s3_client.upload_fileobj(BytesIO(image_bytes), S3_BUCKET_NAME, s3_key)  # Đã sửa với BytesIO import
     except Exception as e:
         logging.exception(f"Upload S3 error: {str(e)}")
         return jsonify({'error': f'Lỗi lưu ảnh lên S3: {str(e)}'}), 500
 
-
     try:
+        # Lập chỉ mục khuôn mặt với Rekognition
         response = rekognition.index_faces(
-        CollectionId=collection_id,
-        Image={'Bytes': image_bytes},
-        ExternalImageId=student_id,
-        DetectionAttributes=['ALL']
-    )
+            CollectionId=collection_id,
+            Image={'Bytes': image_bytes},
+            ExternalImageId=student_id,
+            DetectionAttributes=['ALL']
+        )
         if not response['FaceRecords']:
             return jsonify({'error': 'Không phát hiện khuôn mặt trong ảnh'}), 400
-    except  Exception as e:
+        if len(response['FaceRecords']) > 1:
+            return jsonify({'error': 'Nhiều hơn một khuôn mặt được phát hiện, vui lòng dùng ảnh có một khuôn mặt duy nhất'}), 400
+
+        face_id = response['FaceRecords'][0]['Face']['FaceId']
+        # Kiểm tra xem face_id đã được liên kết với tài khoản khác chưa
+        users_table = dynamodb.Table('Users')
+        existing_users = users_table.scan(
+            FilterExpression='contains(face_id, :f)',
+            ExpressionAttributeValues={':f': face_id}
+        )['Items']
+        if existing_users:
+            return jsonify({'error': 'Khuôn mặt này đã được đăng ký với tài khoản khác'}), 400
+
+    except Exception as e:
         logging.exception(f"Rekognition error: {str(e)}")
         return jsonify({'error': f'Lỗi xử lý ảnh với Rekognition: {str(e)}'}), 500
 
-
     try:
-        table = dynamodb.Table('Users')
-        response = table.get_item(Key={'user_id': student_id})
-        if response.get('Item'):
-            return jsonify({'error': 'Student ID đã tồn tại'}), 400
-
-        table.put_item(
+        # Lưu thông tin vào DynamoDB
+        users_table.put_item(
             Item={
                 'user_id': student_id,
                 'name': name,
                 'class_id': class_id,
                 'role': role,
-                'password': hashed_password
+                'password': hashed_password,
+                'face_id': face_id
             }
         )
         return jsonify({'message': f'Đăng ký sinh viên thành công: {student_id}'})
@@ -325,48 +333,85 @@ def attendance():
     if not image.content_type.startswith('image/'):
         return jsonify({'error': 'Tệp không phải ảnh'}), 400
 
+    student_id = request.user['user_id']
     try:
         image_bytes = image.read()
-        response = rekognition.search_faces_by_image(
+        logging.debug(f"Image size in /attendance: {len(image_bytes)} bytes, content_type: {image.content_type}")
+
+        detect_response = rekognition.detect_faces(
+            Image={'Bytes': image_bytes},
+            Attributes=['ALL']
+        )
+        if len(detect_response['FaceDetails']) > 1:
+            return jsonify({'error': 'Nhiều hơn một khuôn mặt được phát hiện, vui lòng dùng ảnh có một khuôn mặt duy nhất'}), 400
+
+        search_response = rekognition.search_faces_by_image(
             CollectionId=collection_id,
             Image={'Bytes': image_bytes},
             MaxFaces=1,
-            FaceMatchThreshold=80
+            FaceMatchThreshold=98
         )
     except Exception as e:
         logging.exception("Rekognition search error")
         return jsonify({'error': 'Lỗi nhận diện khuôn mặt'}), 500
 
-    if response['FaceMatches']:
-        student_id = response['FaceMatches'][0]['Face']['ExternalImageId']
-        timestamp = datetime.utcnow().isoformat() + 'Z'
-        try:
-            users_table = dynamodb.Table('Users')
-            user_data = users_table.get_item(Key={'user_id': student_id})
-            user = user_data.get('Item')
-            if not user:
-                return jsonify({'error': 'Sinh viên chưa đăng ký'}), 404
-
-            attendance_table = dynamodb.Table('Attendance')
-            attendance_table.put_item(
-                Item={
-                    'student_id': student_id,
-                    'name': user.get('name'),
-                    'class_id': user.get('class_id'),
-                    'timestamp': timestamp
-                }
-            )
-            return jsonify({
-                'message': f'Điểm danh thành công: {student_id}',
-                'student_id': student_id,
-                'name': user.get('name'),
-                'timestamp': timestamp
-            })
-        except Exception as e:
-            logging.exception("Attendance save error")
-            return jsonify({'error': 'Lỗi lưu thông tin điểm danh'}), 500
-    else:
+    if not search_response['FaceMatches']:
+        logging.debug("No face matches found in collection")
         return jsonify({'error': 'Không nhận diện được khuôn mặt'}), 404
+
+    matched_student_id = search_response['FaceMatches'][0]['Face']['ExternalImageId']
+    similarity = search_response['FaceMatches'][0]['Similarity']
+    logging.debug(f"Matched student_id: {matched_student_id}, expected student_id: {student_id}, similarity: {similarity}%")
+    
+    if matched_student_id != student_id:
+        logging.debug(f"Face does not match registered account. Matched: {matched_student_id}, Expected: {student_id}")
+        return jsonify({'error': 'Khuôn mặt không khớp với tài khoản đã đăng ký'}), 400
+
+    try:
+        users_table = dynamodb.Table('Users')
+        user_data = users_table.get_item(Key={'user_id': student_id})['Item']
+        if not user_data:
+            return jsonify({'error': 'Sinh viên chưa đăng ký'}), 404
+
+        attendance_table = dynamodb.Table('Attendance')
+        timestamp = datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'  # Làm tròn về giây
+
+        # Kiểm tra trùng lặp trong vòng 1 phút
+        one_minute_ago = (datetime.utcnow() - timedelta(minutes=1)).replace(microsecond=0).isoformat() + 'Z'
+        existing_records = attendance_table.query(
+            KeyConditionExpression='student_id = :sid AND #ts BETWEEN :start AND :end',
+            ExpressionAttributeNames={'#ts': 'timestamp'},
+            ExpressionAttributeValues={
+                ':sid': student_id,
+                ':start': one_minute_ago,
+                ':end': timestamp
+            }
+        )['Items']
+        if existing_records:
+            logging.debug(f"Duplicate attendance record found for student_id: {student_id}, timestamp: {timestamp}")
+            return jsonify({'error': 'Đã điểm danh trong vòng 1 phút qua'}), 400
+
+        attendance_table.put_item(
+            Item={
+                'student_id': student_id,
+                'name': user_data.get('name'),
+                'class_id': user_data.get('class_id'),
+                'timestamp': timestamp
+            }
+        )
+        logging.debug(f"Attendance recorded for student_id: {student_id}, timestamp: {timestamp}")
+        return jsonify({
+            'message': f'Điểm danh thành công: {student_id}',
+            'student_id': student_id,
+            'name': user_data.get('name'),
+            'timestamp': timestamp
+        })
+    except ClientError as e:
+        logging.exception(f"DynamoDB error: {str(e)}")
+        return jsonify({'error': f'Lỗi lưu thông tin điểm danh: {str(e)}'}), 500
+    except Exception as e:
+        logging.exception("Attendance save error")
+        return jsonify({'error': 'Lỗi lưu thông tin điểm danh'}), 500
 
 @app.route('/history', methods=['GET'])
 def history():
@@ -375,8 +420,8 @@ def history():
         return auth_result
 
     role = request.user.get('role')
-    if role not in ['admin', 'teacher']:
-        return jsonify({'error': 'Không có quyền truy cập'}), 403
+    student_id = request.user.get('user_id')
+    logging.debug(f"Fetching history for student_id: {student_id}, role: {role}")
 
     try:
         attendance_table = dynamodb.Table('Attendance')
@@ -387,11 +432,27 @@ def history():
         if last_evaluated_key:
             scan_kwargs['ExclusiveStartKey'] = {'student_id': last_evaluated_key}
 
+        if role == 'student':
+            scan_kwargs['FilterExpression'] = 'student_id = :sid'
+            scan_kwargs['ExpressionAttributeValues'] = {':sid': student_id}
+
         scan_result = attendance_table.scan(**scan_kwargs)
-        records = sorted(scan_result.get('Items', []), key=lambda x: x['timestamp'], reverse=True)
+        records = scan_result.get('Items', [])
+
+        # Loại bỏ trùng lặp trên backend
+        unique_records = []
+        seen = set()
+        for record in records:
+            key = (record['student_id'], record['timestamp'], record.get('class_id', ''))
+            if key not in seen:
+                seen.add(key)
+                unique_records.append(record)
+
+        unique_records = sorted(unique_records, key=lambda x: x['timestamp'], reverse=True)
         last_key = scan_result.get('LastEvaluatedKey', {}).get('student_id')
 
-        return jsonify({'records': records, 'last_key': last_key})
+        logging.debug(f"Returning {len(unique_records)} unique records")
+        return jsonify({'records': unique_records, 'last_key': last_key})
     except Exception as e:
         logging.exception("History fetch error")
         return jsonify({'error': 'Lỗi lấy lịch sử điểm danh'}), 500

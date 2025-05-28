@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Container, Form, Button, Card } from 'react-bootstrap';
 import axiosClient from '../api/axiosClient';
 import { toast } from 'react-toastify';
+import { FaBook, FaGraduationCap } from 'react-icons/fa';
 
 const RegisterAdmin = () => {
   const [adminId, setAdminId] = useState('');
@@ -42,10 +43,11 @@ const RegisterAdmin = () => {
       // style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', minHeight: '80vh' }}
     >
       <Card
+        className="animate-fadeInUp"
         style={{
           width: '400px',
           border: 'none',
-          borderRadius: '15px',
+          borderRadius: '18px',
           boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
           animation: 'fadeIn 1s ease-in-out forwards',
           fontFamily: "'Poppins', sans-serif",
@@ -54,14 +56,21 @@ const RegisterAdmin = () => {
       >
         <Card.Body>
           <h2
+            className="animate-fadeInUp"
             style={{
               color: '#2c3e50',
               fontWeight: 'bold',
               textAlign: 'center',
               marginBottom: '30px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
             }}
           >
+            <FaBook style={{ color: '#1976d2', fontSize: '1.3rem' }} />
             Register Admin
+            <FaGraduationCap style={{ color: '#fcb69f', fontSize: '1.1rem' }} />
           </h2>
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-4">

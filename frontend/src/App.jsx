@@ -6,7 +6,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './contexts/AuthContext';
 import Sidebar from './components/common/Sidebar';
 import AppRoutes from './routes/AppRoutes';
-
+import './styles/Responsive.css';
+import './styles/App.css';
 const App = () => {
   return (
     <BrowserRouter>

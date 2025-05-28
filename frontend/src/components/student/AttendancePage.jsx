@@ -1,10 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { Container, Form, Button, Alert, Card, Image, Spinner } from 'react-bootstrap';
 import Webcam from 'react-webcam';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaCamera, FaTimes, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import Sidebar from '../common/Sidebar';
+
+// Giả lập context (nếu bạn đã có context, thay thế bằng context thực tế)
+const AttendanceContext = React.createContext();
 
 const AttendancePage = () => {
   const [image, setImage] = useState(null);
@@ -16,6 +19,13 @@ const AttendancePage = () => {
   const [showWebcam, setShowWebcam] = useState(false);
   const webcamRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Làm sạch preview khi image thay đổi
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
   const checkWebcamSupport = () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -44,9 +54,13 @@ const AttendancePage = () => {
       fetch(imageSrc)
         .then(res => res.blob())
         .then(blob => {
-          setImage(blob);
-          setPreview(imageSrc);
-          stopWebcam();
+          if (blob.size > 0) {
+            setImage(blob);
+            setPreview(imageSrc);
+            stopWebcam();
+          } else {
+            setError('Ảnh chụp từ webcam trống.');
+          }
         })
         .catch(() => setError('Lỗi khi chụp ảnh từ webcam'));
     } else {
@@ -57,10 +71,15 @@ const AttendancePage = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImage(file);
-      setPreview(URL.createObjectURL(file));
+      if (file.size > 0 && file.type.startsWith('image/')) {
+        setImage(file);
+        setPreview(URL.createObjectURL(file));
+      } else {
+        setError('File không phải là ảnh hợp lệ.');
+      }
     } else {
       setPreview(null);
+      setImage(null);
     }
   };
 
@@ -70,8 +89,8 @@ const AttendancePage = () => {
     setMessage('');
     setAttendanceData(null);
 
-    if (!image) {
-      setError('Vui lòng chọn ảnh hoặc chụp ảnh từ webcam');
+    if (!image || image.size === 0) {
+      setError('Vui lòng chọn ảnh hợp lệ hoặc chụp ảnh từ webcam');
       return;
     }
 
@@ -81,6 +100,11 @@ const AttendancePage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
+        return;
+      }
+
       const response = await axios.post('http://localhost:5000/attendance', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,8 +120,11 @@ const AttendancePage = () => {
       });
       setImage(null);
       setPreview(null);
+      // Gửi sự kiện cập nhật qua context (nếu có)
+      // Ví dụ: dispatchEvent(new CustomEvent('attendanceUpdated', { detail: response.data }));
     } catch (err) {
-      setError(err.response?.data?.error || 'Điểm danh thất bại');
+      const errorMsg = err.response?.data?.error || 'Điểm danh thất bại. Vui lòng thử lại.';
+      setError(errorMsg.includes('lưu') ? 'Lỗi lưu thông tin điểm danh' : errorMsg);
     } finally {
       setLoading(false);
     }
@@ -109,22 +136,20 @@ const AttendancePage = () => {
       <div
         style={{
           marginLeft: '250px',
-          width: '80%',
-          // background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-          minHeight: '100vh',
-          padding: '20px',
+          width: 'calc(100% - 250px)',
+          padding: '15px',
         }}
         className="main-content"
       >
         <Card
           style={{
             maxWidth: '50%',
+            margin: '0 auto',
             border: 'none',
             borderRadius: '15px',
             boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-            animation: 'fadeIn 1s ease-in-out forwards',
             fontFamily: "'Poppins', sans-serif",
-            padding: '20px',
+            padding: '15px',
           }}
         >
           <div className="d-flex justify-content-between align-items-center mb-4">
@@ -133,6 +158,7 @@ const AttendancePage = () => {
                 color: '#2c3e50',
                 fontWeight: 'bold',
                 marginBottom: '0',
+                fontSize: '20px',
               }}
             >
               Điểm Danh Khuôn Mặt
@@ -144,6 +170,8 @@ const AttendancePage = () => {
               variant="success"
               className="d-flex align-items-center"
               style={{ borderRadius: '10px' }}
+              onClose={() => setMessage('')}
+              dismissible
             >
               <FaCheckCircle className="me-2" />
               {message}
@@ -154,6 +182,8 @@ const AttendancePage = () => {
               variant="danger"
               className="d-flex align-items-center"
               style={{ borderRadius: '10px' }}
+              onClose={() => setError('')}
+              dismissible
             >
               <FaExclamationTriangle className="me-2" />
               {error}
@@ -171,16 +201,7 @@ const AttendancePage = () => {
                 style={{
                   borderRadius: '10px',
                   padding: '12px',
-                  border: '1px solid #ced4da',
-                  transition: 'all 0.3s ease',
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#1e90ff';
-                  e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#ced4da';
-                  e.target.style.boxShadow = 'none';
+                  fontSize: '14px',
                 }}
               />
             </Form.Group>
@@ -190,7 +211,7 @@ const AttendancePage = () => {
                 src={preview}
                 thumbnail
                 className="mb-3 preview-image d-block mx-auto"
-                style={{ maxWidth: '300px', borderRadius: '10px' }}
+                style={{ maxWidth: '250px', borderRadius: '10px' }}
               />
             )}
 
@@ -204,10 +225,8 @@ const AttendancePage = () => {
                 border: 'none',
                 borderRadius: '25px',
                 padding: '12px',
-                transition: 'transform 0.3s ease',
+                fontSize: '14px',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               <FaCamera className="me-2" />
               Sử dụng Webcam
@@ -221,7 +240,7 @@ const AttendancePage = () => {
                   screenshotFormat="image/jpeg"
                   width="100%"
                   videoConstraints={{ width: 640, height: 480, facingMode: 'user' }}
-                  style={{ borderRadius: '10px', overflow: 'hidden' }}
+                  style={{ borderRadius: '10px', overflow: 'hidden', maxWidth: '100%' }}
                 />
                 <div className="mt-3 d-flex justify-content-between">
                   <Button
@@ -233,10 +252,8 @@ const AttendancePage = () => {
                       border: 'none',
                       borderRadius: '25px',
                       padding: '12px',
-                      transition: 'transform 0.3s ease',
+                      fontSize: '14px',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                   >
                     Chụp ảnh
                   </Button>
@@ -247,10 +264,8 @@ const AttendancePage = () => {
                     style={{
                       borderRadius: '25px',
                       padding: '12px',
-                      transition: 'transform 0.3s ease',
+                      fontSize: '14px',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                   >
                     <FaTimes className="me-2" />
                     Tắt Webcam
@@ -269,10 +284,8 @@ const AttendancePage = () => {
                 border: 'none',
                 borderRadius: '25px',
                 padding: '12px',
-                transition: 'transform 0.3s ease',
+                fontSize: '14px',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               {loading ? (
                 <>
@@ -305,10 +318,10 @@ const AttendancePage = () => {
               }}
             >
               <Card.Body>
-                <Card.Title style={{ color: '#2c3e50', fontWeight: 'bold' }}>
+                <Card.Title style={{ color: '#2c3e50', fontWeight: 'bold', fontSize: '16px' }}>
                   Thông Tin Điểm Danh
                 </Card.Title>
-                <Card.Text>
+                <Card.Text style={{ fontSize: '14px' }}>
                   <strong>Họ và tên:</strong> {attendanceData.name}<br />
                   <strong>Mã sinh viên:</strong> {attendanceData.student_id}<br />
                   <strong>Thời gian:</strong> {attendanceData.timestamp}
@@ -327,7 +340,18 @@ const AttendancePage = () => {
           .main-content {
             margin-left: 0 !important;
             width: 100% !important;
-            padding: 20px;
+            padding: 10px;
+          }
+          .card {
+            max-width: 100% !important;
+          }
+        }
+        @media (max-width: 576px) {
+          .preview-image {
+            max-width: 200px !important;
+          }
+          .card-body {
+            padding: 10px !important;
           }
         }
       `}</style>

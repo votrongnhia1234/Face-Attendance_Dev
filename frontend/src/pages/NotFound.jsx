@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { FaBook, FaGraduationCap } from 'react-icons/fa';
 
 const NotFound = () => {
   return (
@@ -16,14 +17,19 @@ const NotFound = () => {
         }}
       >
         <Alert
+          className="animate-fadeInUp"
           variant="warning"
           style={{
-            borderRadius: '15px',
+            borderRadius: '18px',
             padding: '30px',
             boxShadow: '0 8px 20px rgba(255,193,7,0.2)',
           }}
         >
-          <h2 style={{ color: '#ffc107', fontWeight: 'bold' }}>404 - Page Not Found</h2>
+          <h2 className="d-flex align-items-center justify-content-center gap-2" style={{ color: '#ffc107', fontWeight: 'bold' }}>
+            <FaBook style={{ color: '#1976d2', fontSize: '1.3rem' }} />
+            404 - Page Not Found
+            <FaGraduationCap style={{ color: '#fcb69f', fontSize: '1.1rem' }} />
+          </h2>
           <p style={{ color: '#7f8c8d' }}>The page you are looking for does not exist.</p>
         </Alert>
         <Button

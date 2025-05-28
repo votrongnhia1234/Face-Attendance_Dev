@@ -1,0 +1,117 @@
+:root {
+  --primary: #1976d2;
+  --secondary: #43a047;
+  --accent: #ffe082;
+  --background: #f5f7fa;
+  --card-radius: 18px;
+  --transition: 0.3s cubic-bezier(.4,2,.6,1);
+  --edu-blue: #2196f3;
+  --edu-green: #d4fc79;
+  --edu-yellow: #fff9c4;
+  --edu-orange: #ffb74d;
+  --edu-purple: #b39ddb;
+}
+
+body {
+  background: var(--background);
+  font-family: 'Poppins', 'Nunito', sans-serif;
+}
+
+.card, .table, .form-control, .btn {
+  border-radius: var(--card-radius) !important;
+  transition: box-shadow var(--transition), transform var(--transition), background var(--transition);
+}
+
+.card:hover, .table:hover {
+  box-shadow: 0 8px 32px rgba(25, 118, 210, 0.15);
+  transform: translateY(-4px) scale(1.01);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, var(--primary), #64b5f6);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, #1565c0, #1976d2);
+  transform: scale(1.05);
+}
+
+.btn-success {
+  background: linear-gradient(90deg, var(--secondary), #d4fc79);
+  border: none;
+}
+
+.btn-success:hover {
+  background: linear-gradient(90deg, #388e3c, #43a047);
+  transform: scale(1.05);
+}
+
+.btn-warning {
+  background: linear-gradient(90deg, var(--accent), #ffb74d);
+  border: none;
+  color: #333;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(90deg, #ffe082, #ffb74d);
+  transform: scale(1.05);
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 8px #1976d233;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.7s cubic-bezier(.4,2,.6,1) both;
+}
+
+/* Nâng cấp bảng */
+.table th {
+  background: linear-gradient(90deg, var(--primary), #64b5f6);
+  color: white;
+}
+
+.table tbody tr:hover {
+  background: #e3f2fd;
+  transform: scale(1.01);
+}
+
+/* Nâng cấp input */
+input[type="text"], input[type="password"], input[type="date"], input[type="file"] {
+  border-radius: var(--card-radius);
+  border: 1px solid #ced4da;
+  padding: 12px;
+  font-size: 15px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+input[type="text"]:focus, input[type="password"]:focus, input[type="date"]:focus, input[type="file"]:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 8px #1976d233;
+}
+
+/* Nâng cấp tiêu đề */
+h2, h3, h4 {
+  font-family: 'Poppins', 'Nunito', sans-serif;
+  font-weight: bold;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+}
+
+/* Hiệu ứng cho alert */
+.alert {
+  border-radius: var(--card-radius);
+  font-size: 15px;
+}
+
+/* Spinner màu gradient */
+.spinner-border {
+  border-color: var(--primary) var(--accent) var(--primary) var(--accent) !important;
+}

@@ -12,6 +12,7 @@ import ManageStudents from '../components/admin/ManageStudents';
 import RegisterStudent from '../components/teacher/RegisterStudent';
 import TeacherHistoryPage from '../components/teacher/HistoryPage';
 import AttendancePage from '../components/student/AttendancePage';
+import StudentHistoryPage from '../components/student/StudentHistoryPage'; // Thêm import
 import NotFound from '../pages/NotFound';
 import Unauthorized from '../pages/Unauthorized';
 import RegisterAdmin from '../pages/RegisterAdmin';
@@ -93,6 +94,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute role="student">
             <AttendancePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/history"
+        element={
+          <ProtectedRoute role="student">
+            <StudentHistoryPage />
           </ProtectedRoute>
         }
       />

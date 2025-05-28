@@ -14,7 +14,9 @@ import {
 } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
-import { FaUsers, FaChalkboardTeacher, FaClipboardCheck, FaSearch } from 'react-icons/fa';
+import { FaUsers, FaChalkboardTeacher, FaClipboardCheck, FaSearch, FaBook, FaGraduationCap } from 'react-icons/fa';
+import Sidebar from '../common/Sidebar';
+import { useAuth } from '../../hooks/useAuth';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({ students: 0, teachers: 0, attendance_today: 0 });
@@ -29,6 +31,8 @@ const AdminDashboard = () => {
     classId: '',
     date: '',
   });
+
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchSummary();
@@ -86,16 +90,20 @@ const AdminDashboard = () => {
   }, [search, recentAttendance]);
 
   return (
-    <div
-      style={{
-        width: 'calc(100% - 250px)',
-        minHeight: '100vh',
-        padding: '20px 0',
-        marginLeft: '250px'
-      }}
-    >
-      <Container>
-        <Container fluid className="py-5">
+    <div style={{ display: 'flex', minHeight: '100vh',  }}>
+      <Sidebar />
+      <div
+        style={{
+          marginLeft: '250px',
+          width: 'calc(100% - 250px)',
+          padding: '15px',
+        }}
+        className="main-content"
+      >
+        <Container fluid className="py-3">
+          <div style={{ textAlign: 'center', marginBottom: 10, fontSize: 18, color: '#1976d2', fontWeight: 500 }}>
+            Xin chào, {user?.name || user?.id || 'Admin'}!
+          </div>
           {loading && stats.students === 0 && stats.teachers === 0 && stats.attendance_today === 0 ? (
             <div
               style={{
@@ -114,50 +122,45 @@ const AdminDashboard = () => {
           ) : (
             <>
               <h2
+                className="animate-fadeInUp"
                 style={{
-                  animation: 'fadeIn 1s ease-in-out forwards',
                   color: '#2c3e50',
                   fontWeight: 'bold',
                   fontFamily: "'Poppins', sans-serif",
                   textAlign: 'center',
-                  marginBottom: '40px',
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                  marginBottom: '20px',
+                  fontSize: '22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
                 }}
               >
+                <FaBook style={{ color: '#1976d2', fontSize: '1.5rem' }} />
                 Admin Dashboard
+                <FaGraduationCap style={{ color: '#fcb69f', fontSize: '1.3rem' }} />
               </h2>
-              <Row className="mb-5">
+              <Row className="mb-4">
                 <Col md={4} sm={12}>
                   <Card
+                    className="animate-fadeInUp"
                     style={{
-                      animation: 'slideIn 0.8s ease-in-out forwards',
-                      animationDelay: '0.1s',
-                      opacity: 0,
                       border: 'none',
-                      borderRadius: '15px',
+                      borderRadius: '18px',
                       background: 'linear-gradient(145deg, #a1c4fd 0%, #c2e9fb 100%)',
                       boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-                      marginBottom: '20px',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-10px)';
-                      e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                      marginBottom: '15px',
                     }}
                   >
                     <Card.Body className="d-flex align-items-center">
-                      <FaUsers style={{ fontSize: '2.8rem', color: '#1976d2', marginRight: '20px' }} />
+                      <FaUsers style={{ fontSize: '2rem', color: '#1976d2', marginRight: '15px' }} />
                       <div>
                         <Card.Title style={{ fontFamily: "'Poppins', sans-serif", color: '#1976d2' }}>
                           Sinh viên
                         </Card.Title>
                         <Card.Text
                           style={{
-                            fontSize: '2.2rem',
+                            fontSize: '1.8rem',
                             fontWeight: 'bold',
                             color: '#1976d2',
                             fontFamily: "'Poppins', sans-serif",
@@ -171,35 +174,24 @@ const AdminDashboard = () => {
                 </Col>
                 <Col md={4} sm={12}>
                   <Card
+                    className="animate-fadeInUp"
                     style={{
-                      animation: 'slideIn 0.8s ease-in-out forwards',
-                      animationDelay: '0.2s',
-                      opacity: 0,
                       border: 'none',
-                      borderRadius: '15px',
+                      borderRadius: '18px',
                       background: 'linear-gradient(145deg, #d4fc79 0%, #96e6a1 100%)',
                       boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-                      marginBottom: '20px',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-10px)';
-                      e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                      marginBottom: '15px',
                     }}
                   >
                     <Card.Body className="d-flex align-items-center">
-                      <FaChalkboardTeacher style={{ fontSize: '2.8rem', color: '#388e3c', marginRight: '20px' }} />
+                      <FaChalkboardTeacher style={{ fontSize: '2rem', color: '#388e3c', marginRight: '15px' }} />
                       <div>
                         <Card.Title style={{ fontFamily: "'Poppins', sans-serif", color: '#388e3c' }}>
                           Giáo viên
                         </Card.Title>
                         <Card.Text
                           style={{
-                            fontSize: '2.2rem',
+                            fontSize: '1.8rem',
                             fontWeight: 'bold',
                             color: '#388e3c',
                             fontFamily: "'Poppins', sans-serif",
@@ -213,35 +205,24 @@ const AdminDashboard = () => {
                 </Col>
                 <Col md={4} sm={12}>
                   <Card
+                    className="animate-fadeInUp"
                     style={{
-                      animation: 'slideIn 0.8s ease-in-out forwards',
-                      animationDelay: '0.3s',
-                      opacity: 0,
                       border: 'none',
-                      borderRadius: '15px',
+                      borderRadius: '18px',
                       background: 'linear-gradient(145deg, #ffecd2 0%, #fcb69f 100%)',
                       boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-                      marginBottom: '20px',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-10px)';
-                      e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                      marginBottom: '15px',
                     }}
                   >
                     <Card.Body className="d-flex align-items-center">
-                      <FaClipboardCheck style={{ fontSize: '2.8rem', color: '#f57c00', marginRight: '20px' }} />
+                      <FaClipboardCheck style={{ fontSize: '2rem', color: '#f57c00', marginRight: '15px' }} />
                       <div>
                         <Card.Title style={{ fontFamily: "'Poppins', sans-serif", color: '#f57c00' }}>
                           Điểm danh hôm nay
                         </Card.Title>
                         <Card.Text
                           style={{
-                            fontSize: '2.2rem',
+                            fontSize: '1.8rem',
                             fontWeight: 'bold',
                             color: '#f57c00',
                             fontFamily: "'Poppins', sans-serif",
@@ -256,19 +237,16 @@ const AdminDashboard = () => {
               </Row>
 
               <Card
+                className="animate-fadeInUp"
                 style={{
-                  animation: 'fadeIn 1s ease-in-out forwards',
-                  animationDelay: '0.4s',
-                  opacity: 0,
                   maxWidth: '100%',
                   margin: 'auto',
-                  marginTop: '30px',
+                  marginTop: '20px',
                   border: 'none',
-                  borderRadius: '15px',
+                  borderRadius: '18px',
                   background: 'white',
                   boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-                  position: 'relative',
-                  padding: '30px',
+                  padding: '15px',
                 }}
               >
                 {loading && (
@@ -299,7 +277,7 @@ const AdminDashboard = () => {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: '30px',
+                      marginBottom: '20px',
                     }}
                   >
                     <h3
@@ -307,7 +285,6 @@ const AdminDashboard = () => {
                         fontFamily: "'Poppins', sans-serif",
                         color: '#2c3e50',
                         fontWeight: 'bold',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
                       }}
                     >
                       Lịch Sử Điểm Danh
@@ -320,26 +297,14 @@ const AdminDashboard = () => {
                         background: 'linear-gradient(45deg, #6ab7f5, #1e90ff)',
                         border: 'none',
                         borderRadius: '25px',
-                        padding: '10px 25px',
-                        fontFamily: "'Poppins', sans-serif",
-                        fontWeight: '500',
-                        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                        e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
-                        e.currentTarget.style.animation = 'pulse 1.5s infinite';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = 'none';
-                        e.currentTarget.style.animation = 'none';
+                        padding: '10px 20px',
+                        fontSize: '14px',
                       }}
                     >
                       Làm Mới
                     </Button>
                   </div>
-                  <Form style={{ marginBottom: '30px' }}>
+                  <Form style={{ marginBottom: '20px' }}>
                     <Row>
                       <Col md={3} sm={12} className="mb-3">
                         <InputGroup>
@@ -351,23 +316,14 @@ const AdminDashboard = () => {
                             style={{
                               borderRadius: '25px 0 0 25px',
                               border: '1px solid #ced4da',
-                              padding: '10px 20px',
-                              fontFamily: "'Poppins', sans-serif",
-                              transition: 'all 0.3s ease',
-                            }}
-                            onFocus={(e) => {
-                              e.currentTarget.style.borderColor = '#1e90ff';
-                              e.currentTarget.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.borderColor = '#ced4da';
-                              e.currentTarget.style.boxShadow = 'none';
+                              padding: '10px',
+                              fontSize: '14px',
                             }}
                           />
                           <InputGroup.Text
                             style={{
                               borderRadius: '0 25px 25px 0',
-                              background: 'linear-gradient(45deg, #f5f7fa, #e0e7ff)',
+                              background: '#f5f7fa',
                               border: '1px solid #ced4da',
                               borderLeft: 'none',
                             }}
@@ -386,23 +342,14 @@ const AdminDashboard = () => {
                             style={{
                               borderRadius: '25px 0 0 25px',
                               border: '1px solid #ced4da',
-                              padding: '10px 20px',
-                              fontFamily: "'Poppins', sans-serif",
-                              transition: 'all 0.3s ease',
-                            }}
-                            onFocus={(e) => {
-                              e.currentTarget.style.borderColor = '#1e90ff';
-                              e.currentTarget.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.borderColor = '#ced4da';
-                              e.currentTarget.style.boxShadow = 'none';
+                              padding: '10px',
+                              fontSize: '14px',
                             }}
                           />
                           <InputGroup.Text
                             style={{
                               borderRadius: '0 25px 25px 0',
-                              background: 'linear-gradient(45deg, #f5f7fa, #e0e7ff)',
+                              background: '#f5f7fa',
                               border: '1px solid #ced4da',
                               borderLeft: 'none',
                             }}
@@ -421,23 +368,14 @@ const AdminDashboard = () => {
                             style={{
                               borderRadius: '25px 0 0 25px',
                               border: '1px solid #ced4da',
-                              padding: '10px 20px',
-                              fontFamily: "'Poppins', sans-serif",
-                              transition: 'all 0.3s ease',
-                            }}
-                            onFocus={(e) => {
-                              e.currentTarget.style.borderColor = '#1e90ff';
-                              e.currentTarget.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.borderColor = '#ced4da';
-                              e.currentTarget.style.boxShadow = 'none';
+                              padding: '10px',
+                              fontSize: '14px',
                             }}
                           />
                           <InputGroup.Text
                             style={{
                               borderRadius: '0 25px 25px 0',
-                              background: 'linear-gradient(45deg, #f5f7fa, #e0e7ff)',
+                              background: '#f5f7fa',
                               border: '1px solid #ced4da',
                               borderLeft: 'none',
                             }}
@@ -454,17 +392,8 @@ const AdminDashboard = () => {
                           style={{
                             borderRadius: '25px',
                             border: '1px solid #ced4da',
-                            padding: '10px 20px',
-                            fontFamily: "'Poppins', sans-serif",
-                            transition: 'all 0.3s ease',
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = '#1e90ff';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = '#ced4da';
-                            e.currentTarget.style.boxShadow = 'none';
+                            padding: '10px',
+                            fontSize: '14px',
                           }}
                         />
                       </Col>
@@ -472,17 +401,15 @@ const AdminDashboard = () => {
                   </Form>
                   {error && <Alert variant="danger">{error}</Alert>}
                   <Table
+                    className="animate-fadeInUp"
                     striped
                     bordered
                     hover
                     responsive
                     style={{
-                      animation: 'fadeIn 1s ease-in-out forwards',
-                      animationDelay: '0.6s',
-                      opacity: 0,
                       borderRadius: '10px',
                       overflow: 'hidden',
-                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '14px',
                     }}
                   >
                     <thead
@@ -505,18 +432,7 @@ const AdminDashboard = () => {
                           <tr
                             key={index}
                             style={{
-                              animation: `slideIn 0.8s ease-in-out forwards`,
-                              animationDelay: `${0.1 * (index + 1)}s`,
-                              opacity: 0,
-                              transition: 'background 0.3s ease, transform 0.3s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'linear-gradient(90deg, #e0e7ff, #f5f7fa)';
-                              e.currentTarget.style.transform = 'scale(1.01)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '';
-                              e.currentTarget.style.transform = 'scale(1)';
+                              transition: 'background 0.3s ease',
                             }}
                           >
                             <td>{record.student_id}</td>
@@ -539,7 +455,7 @@ const AdminDashboard = () => {
             </>
           )}
         </Container>
-      </Container>
+      </div>
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -553,6 +469,43 @@ const AdminDashboard = () => {
           0% { transform: scale(1); }
           50% { transform: scale(1.05); }
           100% { transform: scale(1); }
+        }
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+            padding: 10px;
+          }
+          h2 {
+            font-size: 18px !important;
+            margin-bottom: 15px !important;
+          }
+          .col-sm-12 {
+            margin-bottom: 10px !important;
+          }
+          [style*='animation'], [onMouseEnter], [onMouseLeave] {
+            animation: none !important;
+            pointer-events: none !important;
+          }
+          .card {
+            margin-bottom: 10px !important;
+          }
+          td, th {
+            font-size: 12px !important;
+            padding: 6px !important;
+          }
+          button {
+            font-size: 12px !important;
+            padding: 8px 15px !important;
+          }
+        }
+        @media (max-width: 576px) {
+          .col-sm-12 {
+            margin-bottom: 8px !important;
+          }
+          .card-body {
+            padding: 10px !important;
+          }
         }
       `}</style>
     </div>

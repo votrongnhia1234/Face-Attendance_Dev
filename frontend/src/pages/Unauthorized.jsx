@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { FaBook, FaGraduationCap } from 'react-icons/fa';
 
 const Unauthorized = () => {
   return (
@@ -16,14 +17,19 @@ const Unauthorized = () => {
         }}
       >
         <Alert
+          className="animate-fadeInUp"
           variant="danger"
           style={{
-            borderRadius: '15px',
+            borderRadius: '18px',
             padding: '30px',
             boxShadow: '0 8px 20px rgba(220,53,69,0.2)',
           }}
         >
-          <h2 style={{ color: '#dc3545', fontWeight: 'bold' }}>Unauthorized Access</h2>
+          <h2 className="d-flex align-items-center justify-content-center gap-2" style={{ color: '#dc3545', fontWeight: 'bold' }}>
+            <FaBook style={{ color: '#1976d2', fontSize: '1.3rem' }} />
+            Unauthorized Access
+            <FaGraduationCap style={{ color: '#fcb69f', fontSize: '1.1rem' }} />
+          </h2>
           <p style={{ color: '#7f8c8d' }}>You do not have permission to access this page.</p>
         </Alert>
         <Button

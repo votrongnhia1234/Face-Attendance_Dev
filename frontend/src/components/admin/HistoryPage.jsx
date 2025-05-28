@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, Row, Col, Spinner, Alert, Card } from 'react-bootstrap';
+import { Button, Spinner, Alert, Card } from 'react-bootstrap';
 import axiosClient from '../../api/axiosClient';
+import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-toastify';
+import { startOfDay, isSameDay } from 'date-fns';
 import Sidebar from '../common/Sidebar';
+import ResponsiveSearchForm from '../common/ResponsiveSearchForm';
+import ResponsiveRecordList from '../common/ResponsiveRecordList';
+import { useNavigate } from 'react-router-dom';
 
-const AdminHistoryPage = () => {
+const TeacherHistoryPage = () => {
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [lastKey, setLastKey] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState({
     studentId: '',
@@ -24,7 +31,7 @@ const AdminHistoryPage = () => {
       setLoading(true);
       setError(null);
       const response = await axiosClient.get('/history', {
-        params: { limit: 20, last_key: key },
+        params: { class_id: user.class_id, limit: 20, last_key: key },
       });
       const newRecords = response.data.records;
       setRecords((prev) => [...prev, ...newRecords]);
@@ -32,16 +39,20 @@ const AdminHistoryPage = () => {
       setLastKey(response.data.last_key);
       setHasMore(!!response.data.last_key);
     } catch (error) {
-      setError(error.response?.data?.error || 'Lỗi lấy lịch sử');
-      toast.error(error.response?.data?.error || 'Lỗi lấy lịch sử');
+      setError(error.response?.data?.error || 'Lỗi lấy lịch sử điểm danh');
+      toast.error(error.response?.data?.error || 'Lỗi lấy lịch sử điểm danh');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    if (user?.class_id) {
+      setRecords([]);
+      setFilteredRecords([]);
+      fetchHistory();
+    }
+  }, [user]);
 
   useEffect(() => {
     let filtered = [...records];
@@ -62,10 +73,10 @@ const AdminHistoryPage = () => {
       );
     }
     if (search.date) {
-      const selectedDate = new Date(search.date).toISOString().split('T')[0];
+      const selectedDate = startOfDay(new Date(search.date));
       filtered = filtered.filter(record => {
-        const recordDate = new Date(record.timestamp).toISOString().split('T')[0];
-        return recordDate === selectedDate;
+        const recordDate = startOfDay(new Date(record.timestamp));
+        return isSameDay(recordDate, selectedDate);
       });
     }
 
@@ -77,15 +88,13 @@ const AdminHistoryPage = () => {
   };
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
       <div
         style={{
           marginLeft: '250px',
           width: 'calc(100% - 250px)',
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-          minHeight: '100vh',
-          padding: '20px',
+          padding: '15px',
         }}
         className="main-content"
       >
@@ -94,21 +103,31 @@ const AdminHistoryPage = () => {
             border: 'none',
             borderRadius: '15px',
             boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-            animation: 'fadeIn 1s ease-in-out forwards',
             fontFamily: "'Poppins', sans-serif",
-            padding: '20px',
+            padding: '15px',
           }}
         >
-          <h2
-            style={{
-              color: '#2c3e50',
-              fontWeight: 'bold',
-              textAlign: 'center',
-              marginBottom: '30px',
-            }}
-          >
-            Lịch sử điểm danh (Admin)
-          </h2>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h2
+              style={{
+                color: '#2c3e50',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginBottom: '0',
+                fontSize: '22px',
+                textAlign: 'center',
+              }}
+            >
+              Lịch sử điểm danh (Teacher)
+            </h2>
+            {/* <Button
+              variant="primary"
+              style={{ borderRadius: '25px', padding: '8px 20px', fontWeight: 500 }}
+              onClick={() => navigate('/admin/dashboard')}
+            >
+              Quay về Dashboard
+            </Button> */}
+          </div>
           {loading && (
             <div
               style={{
@@ -129,174 +148,31 @@ const AdminHistoryPage = () => {
               <span style={{ marginLeft: '10px', color: '#2c3e50' }}>Đang tải...</span>
             </div>
           )}
-          <Form className="mb-4">
-            <Row>
-              <Col md={3} sm={12} className="mb-3">
-                <Form.Control
-                  type="text"
-                  placeholder="Mã Sinh Viên"
-                  value={search.studentId}
-                  onChange={e => setSearch({ ...search, studentId: e.target.value })}
-                  style={{
-                    borderRadius: '10px',
-                    padding: '12px',
-                    border: '1px solid #ced4da',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1e90ff';
-                    e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#ced4da';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </Col>
-              <Col md={3} sm={12} className="mb-3">
-                <Form.Control
-                  type="text"
-                  placeholder="Tên"
-                  value={search.name}
-                  onChange={e => setSearch({ ...search, name: e.target.value })}
-                  style={{
-                    borderRadius: '10px',
-                    padding: '12px',
-                    border: '1px solid #ced4da',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1e90ff';
-                    e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#ced4da';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </Col>
-              <Col md={3} sm={12} className="mb-3">
-                <Form.Control
-                  type="text"
-                  placeholder="Lớp"
-                  value={search.classId}
-                  onChange={e => setSearch({ ...search, classId: e.target.value })}
-                  style={{
-                    borderRadius: '10px',
-                    padding: '12px',
-                    border: '1px solid #ced4da',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1e90ff';
-                    e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#ced4da';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </Col>
-              <Col md={3} sm={12} className="mb-3">
-                <Form.Control
-                  type="date"
-                  value={search.date}
-                  onChange={e => setSearch({ ...search, date: e.target.value })}
-                  style={{
-                    borderRadius: '10px',
-                    padding: '12px',
-                    border: '1px solid #ced4da',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1e90ff';
-                    e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#ced4da';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </Col>
-            </Row>
-          </Form>
+          <ResponsiveSearchForm
+            search={search}
+            setSearch={setSearch}
+            fields={['studentId', 'name', 'classId', 'date']}
+          />
           {error && <Alert variant="danger" style={{ borderRadius: '10px' }}>{error}</Alert>}
-          <Table
-            striped
-            bordered
-            hover
-            style={{
-              borderRadius: '10px',
-              overflow: 'hidden',
-            }}
-          >
-            <thead
-              style={{
-                background: 'linear-gradient(45deg, #1e90ff, #6ab7f5)',
-                color: 'white',
-                fontWeight: '600',
-              }}
-            >
-              <tr>
-                <th>Student ID</th>
-                <th>Name</th>
-                <th>Class ID</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record, index) => (
-                  <tr
-                    key={record.student_id + record.timestamp}
-                    style={{
-                      animation: `slideIn 0.8s ease-in-out forwards`,
-                      animationDelay: `${0.01 * (index + 1)}s`,
-                      opacity: 0,
-                      transition: 'background 0.3s ease, transform 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(90deg, #e0e7ff, #f5f7fa)';
-                      e.currentTarget.style.transform = 'scale(1.01)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    <td>{record.student_id}</td>
-                    <td>{record.name || 'Không có tên'}</td>
-                    <td>{record.class_id || 'Không có lớp'}</td>
-                    <td>{new Date(record.timestamp).toLocaleString()}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" className="text-center" style={{ padding: '20px' }}>
-                    Không có bản ghi phù hợp
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
+          <ResponsiveRecordList records={filteredRecords} />
           {hasMore && (
             <Button
               onClick={loadMore}
               variant="primary"
               disabled={loading}
               style={{
-                background: 'linear-gradient(45deg, #1e90ff, #6ab7f5)',
+                background: 'linear-gradient(45deg, #d4fc79, #96e6a1)',
                 border: 'none',
                 borderRadius: '25px',
-                padding: '10px 30px',
+                padding: '12px 30px',
                 marginTop: '20px',
-                transition: 'transform 0.3s ease',
-                animation: 'fadeIn 1s ease-in-out forwards',
-                animationDelay: '0.4s',
-                opacity: 0,
+                marginBottom: '20px',
+                fontSize: '16px',
+                minWidth: '150px',
+                display: 'block',
+                marginLeft: 'auto',
+                marginRight: 'auto',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               Load More
             </Button>
@@ -308,15 +184,29 @@ const AdminHistoryPage = () => {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        @keyframes slideIn {
-          from { transform: translateX(-50px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
         @media (max-width: 991px) {
           .main-content {
             margin-left: 0 !important;
             width: 100% !important;
-            padding: 20px;
+            padding: 10px;
+          }
+        }
+        @media (max-width: 768px) {
+          .main-content {
+            padding: 10px !important;
+          }
+          h2 {
+            font-size: 18px !important;
+            margin-bottom: 15px !important;
+          }
+          [style*='animation'] {
+            animation: none !important;
+          }
+        }
+        @media (max-width: 576px) {
+          button {
+            font-size: 14px !important;
+            padding: 10px 20px !important;
           }
         }
       `}</style>
@@ -324,4 +214,4 @@ const AdminHistoryPage = () => {
   );
 };
 
-export default AdminHistoryPage;
+export default TeacherHistoryPage;

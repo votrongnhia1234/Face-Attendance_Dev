@@ -1,26 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Spinner, Alert, Card } from 'react-bootstrap';
 import axiosClient from '../../api/axiosClient';
-import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-toastify';
-import { startOfDay, isSameDay } from 'date-fns';
+import { Card, Button, Spinner, Alert } from 'react-bootstrap';
 import Sidebar from '../common/Sidebar';
+import { startOfDay, isSameDay } from 'date-fns';
 import ResponsiveSearchForm from '../common/ResponsiveSearchForm';
 import ResponsiveRecordList from '../common/ResponsiveRecordList';
 
-const TeacherHistoryPage = () => {
+const StudentHistoryPage = () => {
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [lastKey, setLastKey] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { user } = useAuth();
 
   const [search, setSearch] = useState({
-    studentId: '',
-    name: '',
-    classId: '',
     date: '',
   });
 
@@ -29,11 +24,24 @@ const TeacherHistoryPage = () => {
       setLoading(true);
       setError(null);
       const response = await axiosClient.get('/history', {
-        params: { class_id: user.class_id, limit: 20, last_key: key },
+        params: { limit: 20, last_key: key },
       });
       const newRecords = response.data.records;
-      setRecords((prev) => [...prev, ...newRecords]);
-      setFilteredRecords((prev) => [...prev, ...newRecords]);
+
+      const uniqueRecords = newRecords.filter(newRec =>
+        !records.some(prevRec =>
+          prevRec.student_id === newRec.student_id &&
+          prevRec.timestamp === newRec.timestamp &&
+          prevRec.class_id === newRec.class_id
+        )
+      );
+
+      if (!key) {
+        setRecords(uniqueRecords);
+      } else {
+        setRecords(prev => [...prev, ...uniqueRecords]);
+      }
+
       setLastKey(response.data.last_key);
       setHasMore(!!response.data.last_key);
     } catch (error) {
@@ -45,45 +53,36 @@ const TeacherHistoryPage = () => {
   };
 
   useEffect(() => {
-    if (user?.class_id) {
-      setRecords([]);
-      setFilteredRecords([]);
-      fetchHistory();
-    }
-  }, [user]);
+    setRecords([]);
+    setFilteredRecords([]);
+    setLastKey(null);
+    setHasMore(true);
+    fetchHistory();
+  }, []);
 
   useEffect(() => {
-    let filtered = [...records];
-
-    if (search.studentId) {
-      filtered = filtered.filter(record =>
-        record.student_id.toLowerCase().includes(search.studentId.toLowerCase())
-      );
-    }
-    if (search.name) {
-      filtered = filtered.filter(record =>
-        record.name && record.name.toLowerCase().includes(search.name.toLowerCase())
-      );
-    }
-    if (search.classId) {
-      filtered = filtered.filter(record =>
-        record.class_id && record.class_id.toLowerCase().includes(search.classId.toLowerCase())
-      );
-    }
+    let filtered = [];
     if (search.date) {
       const selectedDate = startOfDay(new Date(search.date));
-      filtered = filtered.filter(record => {
+      filtered = records.filter(record => {
         const recordDate = startOfDay(new Date(record.timestamp));
         return isSameDay(recordDate, selectedDate);
       });
+    } else {
+      filtered = [...records];
     }
-
+    console.log('Records:', records.map(r => r.timestamp));
+    console.log('Filtered Records:', filtered.map(r => r.timestamp));
     setFilteredRecords(filtered);
   }, [search, records]);
 
   const loadMore = () => {
     if (hasMore) fetchHistory(lastKey);
   };
+
+  const emptyMessage = search.date
+    ? `Không có bản ghi cho ngày ${new Date(search.date).toLocaleDateString('vi-VN')}`
+    : 'Không có bản ghi nào';
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -114,7 +113,7 @@ const TeacherHistoryPage = () => {
               fontSize: '22px',
             }}
           >
-            Lịch sử điểm danh (Teacher)
+            Lịch sử điểm danh của tôi
           </h2>
           {loading && (
             <div
@@ -139,10 +138,10 @@ const TeacherHistoryPage = () => {
           <ResponsiveSearchForm
             search={search}
             setSearch={setSearch}
-            fields={['studentId', 'name', 'classId', 'date']}
+            fields={['date']}
           />
           {error && <Alert variant="danger" style={{ borderRadius: '10px' }}>{error}</Alert>}
-          <ResponsiveRecordList records={filteredRecords} />
+          <ResponsiveRecordList records={filteredRecords} emptyMessage={emptyMessage} />
           {hasMore && (
             <Button
               onClick={loadMore}
@@ -168,10 +167,6 @@ const TeacherHistoryPage = () => {
         </Card>
       </div>
       <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
         @media (max-width: 991px) {
           .main-content {
             margin-left: 0 !important;
@@ -179,7 +174,7 @@ const TeacherHistoryPage = () => {
             padding: 10px;
           }
         }
-        @media (max-width: 768px) {
+        @media (max-width: 576px) {
           .main-content {
             padding: 10px !important;
           }
@@ -187,14 +182,8 @@ const TeacherHistoryPage = () => {
             font-size: 18px !important;
             margin-bottom: 15px !important;
           }
-          [style*='animation'] {
-            animation: none !important;
-          }
-        }
-        @media (max-width: 576px) {
-          button {
-            font-size: 14px !important;
-            padding: 10px 20px !important;
+          .mb-3 {
+            margin-bottom: 12px !important;
           }
         }
       `}</style>
@@ -202,4 +191,4 @@ const TeacherHistoryPage = () => {
   );
 };
 
-export default TeacherHistoryPage;
+export default StudentHistoryPage;

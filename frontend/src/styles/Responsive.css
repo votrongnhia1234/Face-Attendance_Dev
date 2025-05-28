@@ -1,0 +1,43 @@
+/* responsive.css */
+:root {
+  --font-size-base: 16px;
+  --padding-base: 20px;
+  --margin-base: 20px;
+}
+
+/* Mặc định cho desktop */
+body {
+  font-size: var(--font-size-base);
+}
+
+/* Tối ưu cho điện thoại */
+@media (max-width: autofill) {
+  body {
+    font-size: 14px;
+  }
+  .container {
+    padding: 10px;
+  }
+  h1, h2, h3 {
+    font-size: calc(var(--font-size-base) * 0.8);
+  }
+  button, input, select, textarea {
+    font-size: 14px;
+    padding: 8px;
+  }
+  .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .col, .col-12 {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+}
+
+/* Ẩn hiệu ứng hover trên điện thoại */
+@media (hover: none) {
+  [style*="hover"], [onMouseEnter], [onMouseLeave] {
+    pointer-events: none;
+  }
+}

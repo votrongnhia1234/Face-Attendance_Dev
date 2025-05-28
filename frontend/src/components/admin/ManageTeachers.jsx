@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Form, Row, Col, Spinner, Alert, Card } from 'react-bootstrap';
 import axiosClient from '../../api/axiosClient';
 import { toast } from 'react-toastify';
-import Sidebar from '../common/Sidebar'; // Import Sidebar
+import Sidebar from '../common/Sidebar';
 
 const ManageTeachers = () => {
   const [teachers, setTeachers] = useState([]);
@@ -78,7 +78,7 @@ const ManageTeachers = () => {
           width: 'calc(100% - 250px)',
           background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
           minHeight: '100vh',
-          padding: '20px',
+          padding: '15px',
         }}
         className="main-content"
       >
@@ -87,9 +87,8 @@ const ManageTeachers = () => {
             border: 'none',
             borderRadius: '15px',
             boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-            animation: 'fadeIn 1s ease-in-out forwards',
-            fontFamily: "'Poppins', sans-serif",
-            padding: '20px',
+            fontFamily: "'Poppins', sans-serif'",
+            padding: '15px',
           }}
         >
           <h2
@@ -97,7 +96,7 @@ const ManageTeachers = () => {
               color: '#2c3e50',
               fontWeight: 'bold',
               textAlign: 'center',
-              marginBottom: '30px',
+              marginBottom: '20px',
             }}
           >
             Danh sách giáo viên
@@ -133,16 +132,7 @@ const ManageTeachers = () => {
                   style={{
                     borderRadius: '10px',
                     padding: '12px',
-                    border: '1px solid #ced4da',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1e90ff';
-                    e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#ced4da';
-                    e.target.style.boxShadow = 'none';
+                    fontSize: '14px',
                   }}
                 />
               </Col>
@@ -155,16 +145,7 @@ const ManageTeachers = () => {
                   style={{
                     borderRadius: '10px',
                     padding: '12px',
-                    border: '1px solid #ced4da',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1e90ff';
-                    e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#ced4da';
-                    e.target.style.boxShadow = 'none';
+                    fontSize: '14px',
                   }}
                 />
               </Col>
@@ -177,16 +158,7 @@ const ManageTeachers = () => {
                   style={{
                     borderRadius: '10px',
                     padding: '12px',
-                    border: '1px solid #ced4da',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1e90ff';
-                    e.target.style.boxShadow = '0 0 8px rgba(30, 144, 255, 0.3)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#ced4da';
-                    e.target.style.boxShadow = 'none';
+                    fontSize: '14px',
                   }}
                 />
               </Col>
@@ -222,18 +194,7 @@ const ManageTeachers = () => {
                   <tr
                     key={teacher.user_id}
                     style={{
-                      animation: `slideIn 0.8s ease-in-out forwards`,
-                      animationDelay: `${0.1 * (index + 1)}s`,
-                      opacity: 0,
-                      transition: 'background 0.3s ease, transform 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(90deg, #e0e7ff, #f5f7fa)';
-                      e.currentTarget.style.transform = 'scale(1.01)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '';
-                      e.currentTarget.style.transform = 'scale(1)';
+                      transition: 'background 0.3s ease',
                     }}
                   >
                     <td>{teacher.user_id}</td>
@@ -246,11 +207,9 @@ const ManageTeachers = () => {
                         onClick={() => deleteTeacher(teacher.user_id)}
                         style={{
                           borderRadius: '15px',
-                          padding: '5px 15px',
-                          transition: 'transform 0.3s ease',
+                          padding: '8px 15px',
+                          fontSize: '14px',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                       >
                         Delete
                       </Button>
@@ -277,11 +236,32 @@ const ManageTeachers = () => {
           from { transform: translateX(-50px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
-        @media (max-width: 991px) {
+        @media (max-width: 768px) {
           .main-content {
             margin-left: 0 !important;
             width: 100% !important;
-            padding: 20px;
+            padding: 10px;
+          }
+          h2 {
+            font-size: 18px !important;
+            margin-bottom: 15px !important;
+          }
+          [style*='animation'], [onMouseEnter], [onMouseLeave] {
+            animation: none !important;
+            pointer-events: none !important;
+          }
+          td, th {
+            font-size: 14px !important;
+            padding: 8px !important;
+          }
+          button {
+            font-size: 14px !important;
+            padding: 8px 15px !important;
+          }
+        }
+        @media (max-width: 576px) {
+          .col-sm-12 {
+            margin-bottom: 10px !important;
           }
         }
       `}</style>

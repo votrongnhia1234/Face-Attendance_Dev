@@ -3,7 +3,7 @@ import { Navbar, Nav, Container, NavbarText } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-toastify';
-import { FaUser } from 'react-icons/fa';
+import { FaUser, FaBook, FaGraduationCap } from 'react-icons/fa';
 
 const NavigationBar = () => {
   const { user, logout } = useAuth();
@@ -17,10 +17,11 @@ const NavigationBar = () => {
 
   return (
     <Navbar
+      className="animate-fadeInUp"
       style={{
         background: 'linear-gradient(90deg, #1e90ff, #6ab7f5)',
         boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-        borderRadius: '0 0 15px 15px',
+        borderRadius: '0 0 18px 18px',
         padding: '10px 20px',
         fontFamily: "'Poppins', sans-serif",
       }}
@@ -30,6 +31,7 @@ const NavigationBar = () => {
         <Navbar.Brand
           as={Link}
           to="/"
+          className="d-flex align-items-center animate-fadeInUp"
           style={{
             color: 'white',
             fontWeight: '600',
@@ -40,7 +42,9 @@ const NavigationBar = () => {
           onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
           onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
+          <FaBook style={{ marginRight: '10px', color: '#ffe082', fontSize: '1.6rem' }} />
           Hệ thống điểm danh
+          <FaGraduationCap style={{ marginLeft: '10px', color: '#fff9c4', fontSize: '1.4rem' }} />
         </Navbar.Brand>
         <Navbar.Toggle
           aria-controls="basic-navbar-nav"
@@ -130,7 +134,7 @@ const NavigationBar = () => {
                     e.currentTarget.style.transform = 'scale(1)';
                   }}
                 >
-                  Danh sách giáo vien
+                  Danh sách giáo viên
                 </Nav.Link>
                 <Nav.Link
                   as={Link}
@@ -194,7 +198,7 @@ const NavigationBar = () => {
                     e.currentTarget.style.transform = 'scale(1)';
                   }}
                 >
-                  Đăng kí sinh viên
+                  Đăng ký sinh viên
                 </Nav.Link>
                 <Nav.Link
                   as={Link}
@@ -219,26 +223,48 @@ const NavigationBar = () => {
               </>
             )}
             {user && user.role === 'student' && (
-              <Nav.Link
-                as={Link}
-                to="/student/attendance"
-                style={{
-                  color: 'white',
-                  fontWeight: '500',
-                  padding: '10px 20px',
-                  transition: 'all 0.3s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#ffeb3b';
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'white';
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
-              >
-                Điểm danh
-              </Nav.Link>
+              <>
+                <Nav.Link
+                  as={Link}
+                  to="/student/attendance"
+                  style={{
+                    color: 'white',
+                    fontWeight: '500',
+                    padding: '10px 20px',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#ffeb3b';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
+                  Điểm danh
+                </Nav.Link>
+                <Nav.Link
+                  as={Link}
+                  to="/student/history" 
+                  style={{
+                    color: 'white',
+                    fontWeight: '500',
+                    padding: '10px 20px',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#ffeb3b';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
+                  Lịch sử điểm danh
+                </Nav.Link>
+              </>
             )}
           </Nav>
           {user && (
@@ -254,12 +280,20 @@ const NavigationBar = () => {
                   display: 'flex',
                   alignItems: 'center',
                   transition: 'transform 0.3s ease',
+                  gap: '10px',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                <FaUser style={{ fontSize: '1.2rem', marginRight: '8px', color: '#ffeb3b' }} />
-                {user.id || 'User'}
+                {user.avatar ? (
+                  <img src={user.avatar} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 8 }} />
+                ) : (
+                  <FaUser style={{ fontSize: '1.2rem', marginRight: '8px', color: '#ffeb3b' }} />
+                )}
+                <span style={{ fontWeight: 600 }}>{user.name || user.id || 'User'}</span>
+                <span style={{ fontSize: 13, color: '#ffe082', marginLeft: 6, fontWeight: 400 }}>
+                  {user.role === 'admin' ? 'Admin' : user.role === 'teacher' ? 'Giáo viên' : 'Sinh viên'}
+                </span>
               </NavbarText>
               <Nav.Link
                 onClick={handleLogout}
