@@ -52,7 +52,7 @@ const RegisterStudent = () => {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await axios.post('http://localhost:5000/register', formData, {
+      const response = await axios.post('https://studentfacemanagements.onrender.com/register', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',

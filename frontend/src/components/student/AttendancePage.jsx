@@ -104,8 +104,8 @@ const AttendancePage = () => {
         setError('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
         return;
       }
-
-      const response = await axios.post('http://localhost:5000/attendance', formData, {
+      const apiUrl = process.env.REACT_APP_API_URL
+      const response = await axios.post('https://studentfacemanagements.onrender.com/attendance', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
