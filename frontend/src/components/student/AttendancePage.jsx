@@ -191,7 +191,7 @@ const AttendancePage = () => {
           )}
 
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-4">
+            <Form.Group hidden className="mb-4">
               <Form.Label style={{ color: '#2c3e50' }}>Chọn ảnh khuôn mặt</Form.Label>
               <Form.Control
                 type="file"
