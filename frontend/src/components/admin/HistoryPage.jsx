@@ -118,7 +118,7 @@ const TeacherHistoryPage = () => {
                 textAlign: 'center',
               }}
             >
-              Lịch sử điểm danh (Teacher)
+              Lịch sử điểm danh (Admin)
             </h2>
             {/* <Button
               variant="primary"
