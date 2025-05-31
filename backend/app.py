@@ -548,6 +548,42 @@ def admin_summary():
         logging.exception("Admin summary error")
         return jsonify({'error': 'Lỗi lấy thông tin dashboard'}), 500
 
+@app.route('/admin/register-teacher', methods=['POST'])
+def admin_register_teacher():
+    auth_result = check_authorization('admin')
+    if auth_result:
+        return auth_result
+
+    data = request.get_json()
+    teacher_id = data.get('teacher_id')
+    name = data.get('name', teacher_id)
+    password = data.get('password')
+    class_id = data.get('class_id', '')
+
+    if not teacher_id or not password:
+        return jsonify({'error': 'Thiếu teacher_id hoặc password'}), 400
+
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    try:
+        table = dynamodb.Table('Users')
+        response = table.get_item(Key={'user_id': teacher_id})
+        if response.get('Item'):
+            return jsonify({'error': 'Teacher ID đã tồn tại'}), 400
+
+        table.put_item(
+            Item={
+                'user_id': teacher_id,
+                'name': name,
+                'role': 'teacher',
+                'class_id': class_id,
+                'password': hashed_password
+            }
+        )
+        return jsonify({'message': f'Đăng ký giáo viên thành công: {teacher_id}'})
+    except Exception as e:
+        logging.exception("Admin register teacher error")
+        return jsonify({'error': 'Lỗi hệ thống khi đăng ký giáo viên'}), 500
 
 # ======================= CHẠY SERVER =======================
 if __name__ == '__main__':
