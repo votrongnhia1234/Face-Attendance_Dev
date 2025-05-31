@@ -104,7 +104,7 @@ const Sidebar = () => {
               <NavLink to="/admin/register-admin" className="nav-link" style={({ isActive }) => ({
                 color: 'white', padding: '15px 20px', display: 'flex', alignItems: 'center', transition: 'background 0.3s ease', background: isActive ? 'rgba(255,255,255,0.2)' : 'transparent',
               })}>
-                <FaUserPlus className="me-2" /> Đăng ký (Admin)
+                <FaUserPlus className="me-2" /> Đăng ký giáo viên
               </NavLink>
             </>
           )}
@@ -214,7 +214,7 @@ const Sidebar = () => {
                 <NavLink to="/admin/register-admin" className="nav-link" onClick={handleClose} style={({ isActive }) => ({
                   color: 'white', padding: '20px', display: 'flex', alignItems: 'center', transition: 'background 0.3s ease', background: isActive ? 'rgba(255,255,255,0.2)' : 'transparent',
                 })}>
-                  <FaUserPlus className="me-2" /> Đăng ký (Admin)
+                  <FaUserPlus className="me-2" /> Đăng ký giáo viên
                 </NavLink>
               </>
             )}
